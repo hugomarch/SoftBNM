@@ -4,7 +4,7 @@ from time import time
 import pickle
 
 from config import TIMESTAMP_MIN, DATE_MIN, PRESSURE_LEVELS, DAY_WIND_DATA_FILE, LON_INTERVAL, LAT_INTERVAL
-from con import create_connection
+from connection import create_connection
 from formulas import altitude_from_pressure
 
 def get_wind_data(con, timestamp = 1569072):

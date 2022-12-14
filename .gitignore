@@ -1,5 +1,6 @@
 # user-added
-data/**
+data/raw/**
+data/work/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
