@@ -1,7 +1,3 @@
-# user-added
-data/raw/**
-data/work/**
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
