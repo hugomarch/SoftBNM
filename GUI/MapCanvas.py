@@ -21,14 +21,15 @@ class MapCanvas(tk.Canvas):
     NB_OF_SCALES = 10
     LEFT_LONGITUDE = -180 # longitude of map left side
 
-    def __init__(self,parent,img_):
+    def __init__(self,business_parent=None,GUI_parent=None,image=None):
         """ use PIL img for init """
-        tk.Canvas.__init__(self,parent)
+        tk.Canvas.__init__(self,GUI_parent)
+        self.business_parent = business_parent
         self['background'] = '#000'
-        draw_greenwich_meridian(img_,self.LEFT_LONGITUDE)
-        self.source_img = img_
-        self.repeated_map = concatenate_two_images(img_,img_)
-        self.img = None
+        draw_greenwich_meridian(image,self.LEFT_LONGITUDE)
+        self.source_img = image
+        self.repeated_map = concatenate_two_images(image,image)
+        self.cur_img = None
         self.zoom = 0
         self.scale = pow(self.SCALE_EXPONENT,self.zoom)
         # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
@@ -47,7 +48,28 @@ class MapCanvas(tk.Canvas):
         self.bind('<Configure>',self.display_image)
         self.bind('<1>', self.remember_mouse_pos)
         self.bind('<B1-Motion>', self.move_map)
-        self.pack()
+        self.bind('<3>', self.on_right_click)
+
+    def set_coordinates(self,lon,lat):
+        lon,lat = self.control_coordinates(lon,lat)
+        self.lon = lon
+        self.lat = lat
+        map_area = [self.lon,self.lat,(self.lon+360/self.scale)%360,self.lat-180/self.scale]
+        self.business_parent.receive_map_area_coords(map_area)
+
+    def control_coordinates(self,lon,lat):
+        """ ensure that coordinates do not cross limits """
+        min_lat = min(90,90-(1-1/self.scale)*180)
+        lon = (lon - self.LEFT_LONGITUDE) % 360 + self.LEFT_LONGITUDE
+        lat = min(90,max(min_lat,lat))
+        return lon,lat
+
+    def on_right_click(self,event):
+        # Identify clicked point
+        clicked_lon = self.lon + self.convert_pixel_offset_in_degree(event.x,axis='lon')
+        clicked_lat = self.lat + self.convert_pixel_offset_in_degree(event.y,axis='lat')
+        # Send coords
+        self.business_parent.receive_clicked_coords([clicked_lon,clicked_lat])
 
     def remember_mouse_pos(self,event):
         self.mouse_memory_x = event.x
@@ -64,52 +86,52 @@ class MapCanvas(tk.Canvas):
         dims_on_canvas = self.get_map_dims_on_canvas()
         total_pixels = dims_on_canvas[0] if axis == 'lon' else dims_on_canvas[1]
         pix_to_degree = (total_degrees/self.scale)/total_pixels * (1 if axis == 'lon' else -1)
+        """ DEBUG
+        if axis == 'lon':
+            print(f"Pixels: {pixels}; Prop: {dims_on_canvas[0]}; Degrees: {pixels * pix_to_degree}")"""
         return pixels * pix_to_degree
 
-    def control_coordinates(self):
-        """ ensure that coordinates do not cross limits """
-        min_lat = min(90,90-(1-1/self.scale)*180)
-        self.lon = (self.lon - self.LEFT_LONGITUDE) % 360 + self.LEFT_LONGITUDE
-        self.lat = min(90,max(min_lat,self.lat))
-
     def move_map(self,event):
-        x_pixel_offset = -(event.x-self.mouse_memory_x)
-        y_pixel_offset = -(event.y-self.mouse_memory_y)
+        # Compute offset
+        x_pixel_offset = event.x - self.mouse_memory_x
+        y_pixel_offset = event.y - self.mouse_memory_y
         lon_offset = self.convert_pixel_offset_in_degree(x_pixel_offset,axis='lon')
         lat_offset = self.convert_pixel_offset_in_degree(y_pixel_offset,axis='lat')
-        min_lat = min(90,90-(1-1/self.scale)*180)
-        self.lon += lon_offset
-        self.lat += lat_offset
-        self.control_coordinates()
+        # Set new coordinates
+        new_lon = self.lon_memory - lon_offset
+        new_lat = self.lat_memory - lat_offset
+        self.set_coordinates(new_lon,new_lat)
+        # Display
         self.display_image(None)
 
     def zoom_map(self,event):
+        # Identify zoom center
+        zoom_center_lon = self.lon + self.convert_pixel_offset_in_degree(event.x,axis='lon')
+        zoom_center_lat = self.lat + self.convert_pixel_offset_in_degree(event.y,axis='lat')
+        # Change scale
         if event and event.delta > 0 and self.zoom < self.NB_OF_SCALES-1:
             self.zoom += 1
         elif event and event.delta < 0 and self.zoom > 0:
             self.zoom -= 1
         previous_scale = self.scale
         self.scale = pow(self.SCALE_EXPONENT,self.zoom)
-        # zoom with mouse pos as center
-        zoom_center_lon = self.lon + self.convert_pixel_offset_in_degree(event.x,axis='lon')
-        zoom_center_lat = self.lat + self.convert_pixel_offset_in_degree(event.y,axis='lat')
-        self.lon = zoom_center_lon + (previous_scale/self.scale)*(self.lon - zoom_center_lon)
-        self.lat = zoom_center_lat + (previous_scale/self.scale)*(self.lat - zoom_center_lat)
-        self.control_coordinates()
+        # Set new coordinates
+        new_lon = zoom_center_lon + (previous_scale/self.scale)*(self.lon - zoom_center_lon)
+        new_lat = zoom_center_lat + (previous_scale/self.scale)*(self.lat - zoom_center_lat)
+        self.set_coordinates(new_lon,new_lat)
         self.display_image(None)
 
     def display_image(self,event):
-        source_width, source_height = self.source_img.size
-        #dims of image displayed on canvas (indepently of zoom)
-        on_canvas_width, on_canvas_height = int(self.winfo_height() / source_height * source_width), self.winfo_height()
-        on_canvas_dims = (on_canvas_width,on_canvas_height)
-        #dims of cropped zone of map
+        dims_on_canvas = self.get_map_dims_on_canvas()
+        source_width, source_height = self.source_img.width, self.source_img.height
+        # lon-lat coordinates of cropped zone of map
         lon_crop_limit = [self.lon,self.lon+360/self.scale]
         lat_crop_limit = [self.lat,self.lat-180/self.scale]
+        # crop area on repeated map
         x_crop_limit = [(x-self.LEFT_LONGITUDE) * source_width/360 for x in lon_crop_limit]
         y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])
         cropped_source = self.repeated_map.crop(crop_area)
-        self.img = ImageTk.PhotoImage(cropped_source.resize(on_canvas_dims))
+        self.cur_img = ImageTk.PhotoImage(cropped_source.resize(dims_on_canvas))
         self.delete('all')
-        self.create_image(0,0,anchor=tk.NW,image=self.img)
+        self.create_image(0,0,anchor=tk.NW,image=self.cur_img)
