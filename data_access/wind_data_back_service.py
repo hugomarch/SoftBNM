@@ -60,7 +60,8 @@ def store_wind_data_by_month(wind_data : dict, metadata):
     t1 = time()
     # clear work data directory
     for file in os.listdir(WORK_DATA_DIR):
-        os.remove(os.path.join(WORK_DATA_DIR,file))
+        if file.endswith('pickle'):
+            os.remove(os.path.join(WORK_DATA_DIR,file))
     # group and store by month
     wind_by_month = {}
     for datetime, wind_at_dt in wind_data.items():

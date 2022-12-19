@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image,ImageTk
 
-from GeoInfoFrame import GeoInfoFrame
-from config import APP_MIN_WIDTH, APP_MIN_HEIGHT
+from GUI.GeoInfoFrame import GeoInfoFrame
+from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT
 
 def button_hit():
     print("You've indeed hit me hard bastard !")
@@ -18,9 +19,13 @@ class ControlPanel(tk.Frame):
         self.business_parent = business_parent
         self.GUI_parent = GUI_parent
         tk.Frame.__init__(self,self.GUI_parent)
-        self.bullshit_fill()
+        self.bullshit_header()
+        self.logo = tk.Canvas(self)
+        self.logo_img = None
+        self.logo.pack(side=tk.TOP)
         self.geo_info = GeoInfoFrame(business_parent=self,GUI_parent=self)
         self.geo_info.pack(side=tk.TOP,fill=tk.BOTH)
+        self.bind('<Configure>',self.on_resize)
 
     def receive_map_area_coords(self,area):
         self.geo_info.change_coords('Top-left',area[:2])
@@ -29,7 +34,19 @@ class ControlPanel(tk.Frame):
     def receive_clicked_coords(self,clicked_coords):
         self.geo_info.change_coords('Clicked',clicked_coords)
 
-    def bullshit_fill(self):
+    def on_resize(self,event):
+        self.size_logo()
+        
+    def size_logo(self):
+        panel_width = self.winfo_width()
+        source_img = Image.open('logo.png')
+        logo_width, logo_height = panel_width, int(source_img.height/source_img.width * panel_width)
+        self.logo_img = ImageTk.PhotoImage(source_img.resize((logo_width,logo_height)))
+        self.logo['width'] = logo_width
+        self.logo['height'] = logo_height
+        self.logo.create_image(0,0,anchor=tk.NW,image=self.logo_img)
+
+    def bullshit_header(self):
         title_label = ttk.Label(self)
         title_label['text'] = "Welcome in the GUI"
         title_label['background'] = '#f0a050'
@@ -46,13 +63,3 @@ class ControlPanel(tk.Frame):
         button.bind('<Return>',return_pressed)
         button.pack()
         self.button = button
-
-        canvas1 = tk.Canvas(self)
-        canvas1['background'] = '#000'
-        cv1_width, cv1_height = int(APP_MIN_WIDTH/5), int(APP_MIN_HEIGHT/5)
-        canvas1['width'] = cv1_width
-        canvas1['height'] = cv1_height
-        canvas1.pack()
-        self.canvas1 = canvas1
-
-        canvas1.create_line(0,0,int(cv1_width/2),int(cv1_height/3),cv1_width,cv1_height,fill='#ff0',width=10)

@@ -54,7 +54,8 @@ class MapCanvas(tk.Canvas):
         lon,lat = self.control_coordinates(lon,lat)
         self.lon = lon
         self.lat = lat
-        map_area = [self.lon,self.lat,(self.lon+360/self.scale)%360,self.lat-180/self.scale]
+        map_area_lon_width = self.convert_pixel_offset_in_degree(self.winfo_width(),axis='lon')
+        map_area = [self.lon,self.lat,(self.lon+map_area_lon_width)%360,self.lat-180/self.scale]
         self.business_parent.receive_map_area_coords(map_area)
 
     def control_coordinates(self,lon,lat):

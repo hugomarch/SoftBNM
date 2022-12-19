@@ -3,10 +3,9 @@ from tkinter import ttk
 from ctypes import windll
 from PIL import Image, ImageTk
 
-from WindMap import WindMap
-from ControlPanel import ControlPanel
-
-from config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_PANEL_WIDTH
+from GUI.WindMap import WindMap
+from GUI.ControlPanel import ControlPanel
+from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_PANEL_WIDTH
 
 class WindApp:
     def __init__(self):
@@ -42,7 +41,9 @@ class WindApp:
             x,y = self.root.winfo_x(),self.root.winfo_y()
             self.root.geometry(f"{app_width}x{app_height}+{x}+{y}")
         panel_width = min(PANEL_WIDTH_FRAC * app_width, MAX_PANEL_WIDTH)
+        map_width = app_width - panel_width
         self.panel['width'] = panel_width
+        self.map.resize_width(map_width)
 
     def receive_map_area_coords(self,map_area):
         self.panel.receive_map_area_coords(map_area)
