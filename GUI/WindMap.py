@@ -2,7 +2,7 @@ import tkinter as tk
 import os
 
 from GUI.MapCanvas import MapCanvas
-from data.wind_data_front_service import get_wind_work_data
+from data_access.wind_data_front_service import get_wind_work_data
 
 class WindMap:
     def __init__(self,business_parent=None,GUI_parent=None,image=None):

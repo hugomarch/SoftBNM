@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image,ImageTk
+import os
 
 from GUI.GeoInfoFrame import GeoInfoFrame
 from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT
@@ -39,7 +40,7 @@ class ControlPanel(tk.Frame):
         
     def size_logo(self):
         panel_width = self.winfo_width()
-        source_img = Image.open('logo.png')
+        source_img = Image.open(os.path.join('GUI','logo.png'))
         logo_width, logo_height = panel_width, int(source_img.height/source_img.width * panel_width)
         self.logo_img = ImageTk.PhotoImage(source_img.resize((logo_width,logo_height)))
         self.logo['width'] = logo_width
