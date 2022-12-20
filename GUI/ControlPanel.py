@@ -13,13 +13,13 @@ def return_pressed(event):
     print("Return")
 
 def enter(event):
-    print("Enter")
+    print("Enter in the panel")
 
 class ControlPanel(tk.Frame):
     def __init__(self,business_parent=None,GUI_parent=None):
         self.business_parent = business_parent
         self.GUI_parent = GUI_parent
-        tk.Frame.__init__(self,self.GUI_parent)
+        tk.Frame.__init__(self,self.GUI_parent,borderwidth=3)
         self.bullshit_header()
         self.logo = tk.Canvas(self)
         self.logo_img = None
@@ -53,7 +53,6 @@ class ControlPanel(tk.Frame):
         title_label['background'] = '#f0a050'
         title_label['font'] = ('Calibri',14)
         title_label['takefocus'] = True
-        title_label.bind('<Enter>',enter)
         title_label.bind('<Return>',return_pressed)
         title_label.pack(fill=tk.X, anchor=tk.CENTER)
         self.title_label = title_label

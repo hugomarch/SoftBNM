@@ -6,28 +6,22 @@ from GUI.GUI_config import NAME_FRAC
 class GeoInfoFrame(tk.Frame):
     def __init__(self,GUI_parent=None,business_parent=None):
         self.GUI_parent = GUI_parent
-        tk.Frame.__init__(self,self.GUI_parent)
+        tk.Frame.__init__(self,self.GUI_parent,background='#999')
         self.coords = {'Top-left': [None,None],'Bottom-right': [None,None],'Clicked':[None,None]}
-        self.coord_frames = {'Top-left': None,'Bottom-right': None,'Clicked': None}
         self.labels = {'Top-left': None,'Bottom-right': None,'Clicked': None}
-        self.make_widgets()
+        self.make_labels()
         self.bind('<Configure>',self.on_resize)
 
-    def make_one_coord_frame(self,name):
-        coord_frame = tk.Frame(self)
-        labels = []
-        for i in range(3):
-            label = ttk.Label(coord_frame,text=(name if i==0 else ""),background='#999')
-            labels.append(label)
-            label.pack(side=tk.LEFT,fill=tk.Y,expand=(i>0))
-        return coord_frame,labels
-
-    def make_widgets(self):
-        for name in self.coord_frames.keys():
-            coord_frame, labels = self.make_one_coord_frame(name)
-            self.coord_frames[name] = coord_frame
-            self.labels[name] = labels
-            coord_frame.pack(side=tk.TOP,fill=tk.BOTH)
+    def make_labels(self):
+        self.columnconfigure(1,weight=4)
+        self.columnconfigure(2,weight=3)
+        self.columnconfigure(3,weight=3)
+        for i,name in enumerate(self.labels.keys()):
+            self.labels[name] = []
+            for j in range(3):
+                label = ttk.Label(self,text=(name if j==0 else ""),background='#999')
+                self.labels[name].append(label)
+                label.grid(row=i,column=j,sticky=(tk.W if j==0 else tk.E))
 
     def on_resize(self,event):
         """ resize label when panel get resized """

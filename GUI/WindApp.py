@@ -6,7 +6,7 @@ import os
 
 from GUI.WindMap import WindMap
 from GUI.ControlPanel import ControlPanel
-from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_PANEL_WIDTH
+from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_PANEL_WIDTH, MAX_RATIO_WIDTH_HEIGHT
 
 class WindApp:
     def __init__(self):
@@ -17,12 +17,19 @@ class WindApp:
         # WindMap is not a widget, it packs its own canvas
         self.panel.pack(side=tk.RIGHT,fill=tk.BOTH)
         self.root.bind('<Configure>',self.on_resize)
+        self.root.bind('<KeyPress-i>',self.echo_app_info)
         try:
             """ If blurry visual
             from ctypes import windll
             windll.shcore.SetProcessDpiAwareness(1)"""
         finally:
             self.root.mainloop()
+
+    def echo_app_info(self,event):
+        print(f"{self.map.map.winfo_width()} + {self.panel.winfo_width()} = {self.map.map.winfo_width()+self.panel.winfo_width()}")
+        print(f"root width: {self.root.winfo_width()}")
+        print(f"Full screen: {self.root.wm_state()=='zoomed'}")
+        print('\n')
 
     def init_tkinter_root(self):
         self.root = tk.Tk()
@@ -37,7 +44,8 @@ class WindApp:
 
     def on_resize(self,event):
         app_width,app_height= self.root.winfo_width(),self.root.winfo_height()
-        if app_width > 1.7 * app_height:
+        full_screen = (self.root.wm_state()=='zoomed')
+        if not full_screen and app_width > MAX_RATIO_WIDTH_HEIGHT* app_height:
             app_width = int(1.7 * app_height)
             x,y = self.root.winfo_x(),self.root.winfo_y()
             self.root.geometry(f"{app_width}x{app_height}+{x}+{y}")

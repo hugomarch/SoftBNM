@@ -23,7 +23,7 @@ class MapCanvas(tk.Canvas):
 
     def __init__(self,business_parent=None,GUI_parent=None,image=None):
         """ use PIL img for init """
-        tk.Canvas.__init__(self,GUI_parent)
+        tk.Canvas.__init__(self,GUI_parent,borderwidth=3)
         self.business_parent = business_parent
         self['background'] = '#000'
         draw_greenwich_meridian(image,self.LEFT_LONGITUDE)
