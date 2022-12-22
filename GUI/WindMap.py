@@ -50,7 +50,7 @@ class WindMap:
         return best_interval
 
     def update_grid_limits(self):
-
+        return
 
     def get_wind_grid(self):
         self.degree_interval = self.compute_degree_grid_interval(scale)

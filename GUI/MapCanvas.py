@@ -46,7 +46,7 @@ class MapCanvas(tk.Canvas):
         # Events
         self.bind('<MouseWheel>',self.zoom_map)
         self.bind('<Configure>',self.display_image)
-        self.bind('<Configure>',self.send_restricted_map_area_coords,add='+')
+        self.bind('<Configure>',self.send_map_area_coords,add='+')
         self.bind('<1>', self.remember_mouse_pos)
         self.bind('<2>', self.remove_clicked_point)
         self.bind('<B1-Motion>', self.move_map)
@@ -73,7 +73,7 @@ class MapCanvas(tk.Canvas):
 
     def click_point(self,event):
         # Identify clicked point
-        self.clicked_lon = self.lon + self.convert_offset_pixel_degree(event.x,data_source='pixel',axis='lon')
+        self.clicked_lon = (self.lon + self.convert_offset_pixel_degree(event.x,data_source='pixel',axis='lon'))%360
         self.clicked_lat = self.lat + self.convert_offset_pixel_degree(event.y,data_source='pixel',axis='lat')
         # Send coords
         self.business_parent.receive_clicked_coords([self.clicked_lon,self.clicked_lat])
