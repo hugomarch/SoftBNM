@@ -4,6 +4,7 @@ from PIL import Image, ImageTk, ImageDraw
 from math import pow
 
 from GUI.GUI_config import CLICKED_POINT_CROSS_HEIGHT_PROP,CLICKED_POINT_CROSS_WIDTH,CLICKED_POINT_CROSS_COLOR
+from GUI.GUI_config import SCALE_EXPONENT,LEFT_LONGITUDE,NB_OF_SCALES
 
 def draw_greenwich_meridian(img, left_longitude):
     x_greenwich = int(img.width * (-left_longitude)/360)
@@ -19,21 +20,17 @@ def concatenate_two_images(im1,im2):
     return concat
 
 class MapCanvas(tk.Canvas):
-    SCALE_EXPONENT = 1.3
-    NB_OF_SCALES = 10
-    LEFT_LONGITUDE = -180 # longitude of map left side
-
     def __init__(self,business_parent=None,GUI_parent=None,image=None):
         """ use PIL img for init """
         tk.Canvas.__init__(self,GUI_parent,borderwidth=3)
         self.business_parent = business_parent
         self['background'] = '#000'
-        draw_greenwich_meridian(image,self.LEFT_LONGITUDE)
+        draw_greenwich_meridian(image,LEFT_LONGITUDE)
         self.source_img = image
         self.repeated_map = concatenate_two_images(image,image)
         self.cur_img = None
         self.zoom = 0
-        self.scale = pow(self.SCALE_EXPONENT,self.zoom)
+        self.scale = pow(SCALE_EXPONENT,self.zoom)
         # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
         # Longitude origin is at world map left side, and latitude origin is at world top side (INVERSED)
         self.set_coordinates(0,0)
@@ -49,27 +46,27 @@ class MapCanvas(tk.Canvas):
         # Events
         self.bind('<MouseWheel>',self.zoom_map)
         self.bind('<Configure>',self.display_image)
-        self.bind('<Configure>',self.send_map_area_coords,add='+')
+        self.bind('<Configure>',self.send_restricted_map_area_coords,add='+')
         self.bind('<1>', self.remember_mouse_pos)
         self.bind('<2>', self.remove_clicked_point)
         self.bind('<B1-Motion>', self.move_map)
         self.bind('<3>', self.click_point)
 
-    def send_map_area_coords(self,event):
-        map_area_lon_width = self.convert_offset_pixel_degree(self.winfo_width(),data_source='pixel',axis='lon')
-        map_area = [self.lon,self.lat,(self.lon+map_area_lon_width)%360,self.lat-180/self.scale]
-        self.business_parent.receive_map_area_coords(map_area)
+    def send_restricted_map_area_coords(self,event):
+        restricted_map_area_lon_width = self.convert_offset_pixel_degree(self.winfo_width(),data_source='pixel',axis='lon')
+        restricted_map_area = [self.lon,self.lat,(self.lon+restricted_map_area_lon_width)%360,self.lat-180/self.scale]
+        self.business_parent.receive_restricted_map_area_coords(restricted_map_area)
 
     def set_coordinates(self,lon,lat):
         lon,lat = self.control_coordinates(lon,lat)
         self.lon = lon
         self.lat = lat
-        self.send_map_area_coords(None)
+        self.send_restricted_map_area_coords(None)
 
     def control_coordinates(self,lon,lat):
         """ ensure that coordinates do not cross limits """
         min_lat = min(90,90-(1-1/self.scale)*180)
-        lon = (lon - self.LEFT_LONGITUDE) % 360 + self.LEFT_LONGITUDE
+        lon = (lon - LEFT_LONGITUDE) % 360 + LEFT_LONGITUDE
         lat = min(90,max(min_lat,lat))
         return lon,lat
 
@@ -127,12 +124,12 @@ class MapCanvas(tk.Canvas):
         zoom_center_lon = self.lon + self.convert_offset_pixel_degree(event.x,data_source='pixel',axis='lon')
         zoom_center_lat = self.lat + self.convert_offset_pixel_degree(event.y,data_source='pixel',axis='lat')
         # Change scale
-        if event and event.delta > 0 and self.zoom < self.NB_OF_SCALES-1:
+        if event and event.delta > 0 and self.zoom < NB_OF_SCALES-1:
             self.zoom += 1
         elif event and event.delta < 0 and self.zoom > 0:
             self.zoom -= 1
         previous_scale = self.scale
-        self.scale = pow(self.SCALE_EXPONENT,self.zoom)
+        self.scale = pow(SCALE_EXPONENT,self.zoom)
         # Set new coordinates
         new_lon = zoom_center_lon + (previous_scale/self.scale)*(self.lon - zoom_center_lon)
         new_lat = zoom_center_lat + (previous_scale/self.scale)*(self.lat - zoom_center_lat)
@@ -155,7 +152,7 @@ class MapCanvas(tk.Canvas):
         lon_crop_limit = [self.lon,self.lon+360/self.scale]
         lat_crop_limit = [self.lat,self.lat-180/self.scale]
         # crop area on repeated map
-        x_crop_limit = [(x-self.LEFT_LONGITUDE) * source_width/360 for x in lon_crop_limit]
+        x_crop_limit = [(x-LEFT_LONGITUDE) * source_width/360 for x in lon_crop_limit]
         y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])
         cropped_source = self.repeated_map.crop(crop_area)

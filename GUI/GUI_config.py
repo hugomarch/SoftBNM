@@ -8,6 +8,8 @@ CLICKED_POINT_CROSS_HEIGHT_PROP = 0.02 # proportion of window height
 CLICKED_POINT_CROSS_WIDTH = 3 # proportion of window height
 CLICKED_POINT_CROSS_COLOR = "#f00" # proportion of window height
 
+TARGET_NUMBER_OF_WIND_ARROWS_IN_LON = 30
+
 # CONTROL PANEL
 PANEL_WIDTH_FRAC = 0.2
 MAX_PANEL_WIDTH = 300

@@ -65,14 +65,15 @@ def store_wind_data_by_month(wind_data : dict, metadata):
     # group and store by month
     wind_by_month = {}
     for datetime, wind_at_dt in wind_data.items():
-        month = datetime.strftime("%Y-%m")
-        wind_by_month.setdefault(month,{})
-        wind_by_month[month][datetime] = wind_at_dt
-    with open(os.path.join(WORK_DATA_DIR,'metadata.pickle'),'wb') as pickle_out:
+        year_month = datetime.strftime("%Y-%m")
+        year = datetime.strftime("%Y")
+        wind_by_month.setdefault(year_month,{})
+        wind_by_month[year_month][datetime] = wind_at_dt
+    with open(os.path.join(WORK_DATA_DIR,f"{year}_metadata.pickle"),'wb') as pickle_out:
             pickle.dump(metadata,pickle_out)
-    for month, wind_of_month in wind_by_month.items():
-        with open(os.path.join(WORK_DATA_DIR,f"{month}.pickle"),'wb') as pickle_out:
-            pickle.dump(wind_by_month[month],pickle_out)
+    for year_month, wind_of_month in wind_by_month.items():
+        with open(os.path.join(WORK_DATA_DIR,f"{year_month}.pickle"),'wb') as pickle_out:
+            pickle.dump(wind_by_month[year_month],pickle_out)
     t2 = time()
     print(f"Data grouped and stored by month in {t2-t1} seconds!\n")
 

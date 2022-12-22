@@ -4,6 +4,7 @@ from ctypes import windll
 from PIL import Image, ImageTk
 import os
 
+from wind_engine.WindEngine import WindEngine
 from GUI.WindMap import WindMap
 from GUI.ControlPanel import ControlPanel
 from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_PANEL_WIDTH, MAX_RATIO_WIDTH_HEIGHT
@@ -13,7 +14,8 @@ class WindApp:
         self.init_tkinter_root()
         map_background = Image.open(os.path.join('GUI','world-map.jpg'))
         self.panel = ControlPanel(business_parent=self,GUI_parent=self.root)
-        self.map = WindMap(business_parent=self,GUI_parent=self.root,image=map_background)
+        self.wind_engine = WindEngine()
+        self.map = WindMap(business_parent=self,GUI_parent=self.root,wind_engine=WindEngine,image=map_background)
         # WindMap is not a widget, it packs its own canvas
         self.panel.pack(side=tk.RIGHT,fill=tk.BOTH)
         self.root.bind('<Configure>',self.on_resize)
@@ -54,8 +56,8 @@ class WindApp:
         self.panel['width'] = panel_width
         self.map.resize_width(map_width)
 
-    def receive_map_area_coords(self,map_area):
-        self.panel.receive_map_area_coords(map_area)
+    def receive_restricted_map_area_coords(self,restricted_map_area):
+        self.panel.receive_restricted_map_area_coords(restricted_map_area)
 
     def receive_clicked_coords(self,clicked_coords):
         self.panel.receive_clicked_coords(clicked_coords)

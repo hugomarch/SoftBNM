@@ -42,7 +42,7 @@ class GeoInfoFrame(tk.Frame):
         self.labels[name][1]['text'] = lon
         self.labels[name][2]['text'] = lat
         
-    def receive_map_area_coords(self,area):
+    def receive_restricted_map_area_coords(self,area):
         self.change_coords('Top-left',area[0],area[2])
         self.change_coords('Bottom-right',area[1],area[3])
 

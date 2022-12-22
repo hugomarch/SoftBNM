@@ -28,7 +28,7 @@ class ControlPanel(tk.Frame):
         self.geo_info.pack(side=tk.TOP,fill=tk.BOTH)
         self.bind('<Configure>',self.on_resize)
 
-    def receive_map_area_coords(self,area):
+    def receive_restricted_map_area_coords(self,area):
         self.geo_info.change_coords('Top-left',area[:2])
         self.geo_info.change_coords('Bottom-right',area[-2:])
 
