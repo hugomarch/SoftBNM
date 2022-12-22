@@ -2,8 +2,7 @@ from math import floor
 import datetime
 import numpy as np
 
-from formulas import altitude_from_pressure
-from config import LON_INTERVAL, LAT_INTERVAL
+from wind_engine.formulas import altitude_from_pressure
 
 def int_to_binary_list(n, dim):
     res = []
@@ -37,7 +36,7 @@ def interpol_01(f, x):
         s += p
     return tuple(s)
 
-def get_wind_at_coord(wind_data,coord,altitude_param='pressure'):
+def get_wind_at_coord(wind_data,coord,altitude_param='pressure',lon_interval=None,lat_interval=None):
     # find bounds and linear coef for each dimension
     bound = {}
     linear_coef = {}
@@ -61,15 +60,15 @@ def get_wind_at_coord(wind_data,coord,altitude_param='pressure'):
             linear_coef['height'] = (height-h1)/(h2-h1)
             break
     lon = coord['lon']
-    lon1_id = floor(lon/LON_INTERVAL)
-    lon2_id = (lon1_id+1)%(floor(360/LON_INTERVAL))
+    lon1_id = floor(lon/lon_interval)
+    lon2_id = (lon1_id+1)%(floor(360/lon_interval))
     bound["lon"] = (lon1_id,lon2_id)
-    linear_coef["lon"] = (lon-lon1_id*LON_INTERVAL)/LON_INTERVAL
+    linear_coef["lon"] = (lon-lon1_id*lon_interval)/lon_interval
     lat = coord['lat']
-    lat1_id = floor((lat+90)/LAT_INTERVAL)
+    lat1_id = floor((lat+90)/lat_interval)
     lat2_id = lat1_id + 1
     bound["lat"] = (lat1_id,lat2_id)
-    linear_coef["lat"] = (lat+90-lat1_id*LAT_INTERVAL)/LAT_INTERVAL
+    linear_coef["lat"] = (lat+90-lat1_id*lat_interval)/lat_interval
     # find wind vector at each hypercube corner
     wind_on_corner = {}
     dimensions = ["time","height","lon","lat"]

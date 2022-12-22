@@ -4,6 +4,10 @@ APP_MIN_HEIGHT = 700
 MAX_RATIO_WIDTH_HEIGHT = 2
 
 # MAP
+SCALE_EXPONENT = 1.3
+LEFT_LONGITUDE = -180
+NB_OF_SCALES = 10
+
 CLICKED_POINT_CROSS_HEIGHT_PROP = 0.02 # proportion of window height
 CLICKED_POINT_CROSS_WIDTH = 3 # proportion of window height
 CLICKED_POINT_CROSS_COLOR = "#f00" # proportion of window height

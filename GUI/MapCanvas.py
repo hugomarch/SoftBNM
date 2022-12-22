@@ -52,16 +52,17 @@ class MapCanvas(tk.Canvas):
         self.bind('<B1-Motion>', self.move_map)
         self.bind('<3>', self.click_point)
 
-    def send_restricted_map_area_coords(self,event):
+    def send_map_area_coords(self,event):
+        map_area = [self.lon,self.lat,self.lon+360/self.scale,self.lat-180/self.scale]
         restricted_map_area_lon_width = self.convert_offset_pixel_degree(self.winfo_width(),data_source='pixel',axis='lon')
         restricted_map_area = [self.lon,self.lat,(self.lon+restricted_map_area_lon_width)%360,self.lat-180/self.scale]
-        self.business_parent.receive_restricted_map_area_coords(restricted_map_area)
+        self.business_parent.receive_map_area_coords(map_area,restricted_map_area)
 
     def set_coordinates(self,lon,lat):
         lon,lat = self.control_coordinates(lon,lat)
         self.lon = lon
         self.lat = lat
-        self.send_restricted_map_area_coords(None)
+        self.send_map_area_coords(None)
 
     def control_coordinates(self,lon,lat):
         """ ensure that coordinates do not cross limits """

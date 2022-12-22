@@ -19,8 +19,14 @@ class WindEngine:
             wind_grid.append([])
             while lat < map_area[3]:
                 interpol_coord = {'time':time,'pressure':pressure,'height':height,'lon':lon,'lat':lat}
-                local_wind = get_wind_at_coord(self.wind_data,interpol_coord,altitude_param=('height' if height is not None else 'pressure'))
+                params = {altitude_param:('height' if height is not None else 'pressure'),lon_interval:self.metadata['LON Interval'],lat_interval:self.metadata['LAT Interval']}
+                local_wind = get_wind_at_coord(self.wind_data,interpol_coord,**params)
                 wind_grid[-1].append(local_wind)
+                lat += degree_interval
+            lon += degree_interval
+        final_lon = lon-degree_interval
+        final_lat = lat-degree_interval
+        wind_grid_limits = [lon_0,lat_0,final_lon,final_lat]
         return wind_grid
 
     def get_wind_data_degree_interval(self):

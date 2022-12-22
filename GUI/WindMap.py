@@ -1,6 +1,7 @@
 import tkinter as tk
 import os
 from math import sqrt
+from datetime import datetime
 
 from GUI.MapCanvas import MapCanvas
 
@@ -10,15 +11,21 @@ class WindMap:
         self.GUI_parent = GUI_parent
         self.wind_engine = wind_engine
         self.map = MapCanvas(business_parent=self,GUI_parent=self.GUI_parent,image=image)
-        # Coordinates of the maps corners, in longitude and latitute [lon_min,lat_min,lon_max,lat_max]
-        self.restricted_map_area = None
         self.map.pack(side=tk.LEFT,fill=tk.BOTH)
-        self.wind_data = None
-
+        # Map business info (should have ideally in fact been entirely processed here, no logic and display only in MapCanvas)
+        self.restricted_map_area = None
+        self.map_area = [0,-90,360,90]
+        self.scale = 1
+        self.time = datetime.strptime('2022-01-01 10:00:00','%Y-%m-%d %H:%M:%S')
+        self.pressure = 500
+        self.wind_grid = None
+        self.wind_grid_limits = None
+        
     def resize_width(self,width):
         self.map['width'] = width
 
-    def receive_restricted_map_area_coords(self,restricted_map_area):
+    def receive_map_area_coords(self,map_area,restricted_map_area):
+        self.map_area = map_area
         self.restricted_map_area = restricted_map_area
         self.business_parent.receive_restricted_map_area_coords(restricted_map_area)
 
@@ -28,7 +35,7 @@ class WindMap:
     def remove_clicked_point(self):
         self.business_parent.remove_clicked_point()
 
-    def compute_degree_grid_interval(self,scale):
+    def compute_degree_grid_interval(self):
         data_interval = self.wind_engine.get_wind_data_degree_interval()[1]
         grid_size = 180/data_interval
         best_ratio_err = float('inf')
@@ -42,9 +49,12 @@ class WindMap:
                         best_interval = div*data_interval
         return best_interval
 
-    def get_wind_grid(self,scale,map_area,time,pressure):
-        degree_interval = self.compute_degree_grid_interval(scale)
-        wind_grid = self.wind_engine.make_wind_grid(map_area,degree_interval,time,pressure)
+    def update_grid_limits(self):
+
+
+    def get_wind_grid(self):
+        self.degree_interval = self.compute_degree_grid_interval(scale)
+        wind_grid = self.wind_engine.make_wind_grid(self.map_area,self.degree_interval,self.time,pressure=self.pressure)
         return wind_grid
 
     
