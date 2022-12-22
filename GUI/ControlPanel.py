@@ -35,6 +35,9 @@ class ControlPanel(tk.Frame):
     def receive_clicked_coords(self,clicked_coords):
         self.geo_info.change_coords('Clicked',clicked_coords)
 
+    def remove_clicked_point(self):
+        self.geo_info.remove_clicked_point()
+
     def on_resize(self,event):
         self.size_logo()
         
@@ -48,7 +51,7 @@ class ControlPanel(tk.Frame):
         self.logo.create_image(0,0,anchor=tk.NW,image=self.logo_img)
 
     def bullshit_header(self):
-        title_label = ttk.Label(self)
+        title_label = ttk.Label(self, justify='center')
         title_label['text'] = "Welcome in the GUI"
         title_label['background'] = '#f0a050'
         title_label['font'] = ('Calibri',14)

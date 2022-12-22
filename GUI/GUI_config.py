@@ -3,6 +3,11 @@ APP_MIN_WIDTH = 1000
 APP_MIN_HEIGHT = 700
 MAX_RATIO_WIDTH_HEIGHT = 2
 
+# MAP
+CLICKED_POINT_CROSS_HEIGHT_PROP = 0.02 # proportion of window height
+CLICKED_POINT_CROSS_WIDTH = 3 # proportion of window height
+CLICKED_POINT_CROSS_COLOR = "#f00" # proportion of window height
+
 # CONTROL PANEL
 PANEL_WIDTH_FRAC = 0.2
 MAX_PANEL_WIDTH = 300

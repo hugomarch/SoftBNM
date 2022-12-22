@@ -12,8 +12,8 @@ class WindApp:
     def __init__(self):
         self.init_tkinter_root()
         map_background = Image.open(os.path.join('GUI','world-map.jpg'))
-        self.map = WindMap(business_parent=self,GUI_parent=self.root,image=map_background)
         self.panel = ControlPanel(business_parent=self,GUI_parent=self.root)
+        self.map = WindMap(business_parent=self,GUI_parent=self.root,image=map_background)
         # WindMap is not a widget, it packs its own canvas
         self.panel.pack(side=tk.RIGHT,fill=tk.BOTH)
         self.root.bind('<Configure>',self.on_resize)
@@ -59,4 +59,7 @@ class WindApp:
 
     def receive_clicked_coords(self,clicked_coords):
         self.panel.receive_clicked_coords(clicked_coords)
+
+    def remove_clicked_point(self):
+        self.panel.remove_clicked_point()
 

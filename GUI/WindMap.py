@@ -24,6 +24,9 @@ class WindMap:
     def receive_clicked_coords(self,clicked_coords):
         self.business_parent.receive_clicked_coords(clicked_coords)
 
+    def remove_clicked_point(self):
+        self.business_parent.remove_clicked_point()
+
     def load_wind_data(self,year,month):
         self.wind_data = {'year': year,'month': month,'data': get_wind_work_data(year=year,month=month)}
         

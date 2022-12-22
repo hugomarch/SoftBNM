@@ -19,7 +19,7 @@ class GeoInfoFrame(tk.Frame):
         for i,name in enumerate(self.labels.keys()):
             self.labels[name] = []
             for j in range(3):
-                label = ttk.Label(self,text=(name if j==0 else ""),background='#999')
+                label = ttk.Label(self,text=(name if j==0 else "---"),background='#999')
                 self.labels[name].append(label)
                 label.grid(row=i,column=j,sticky=(tk.W if j==0 else tk.E))
 
@@ -33,10 +33,14 @@ class GeoInfoFrame(tk.Frame):
 
     def change_coords(self,name,coords):
         self.coords[name] = coords
-        lon,lat = round(coords[0],1),round(coords[1],1)
-        self.labels[name][0]['text'] = name
-        self.labels[name][1]['text'] = f"{lon}°"
-        self.labels[name][2]['text'] = f"{lat}°"
+        lon,lat = coords[0],coords[1]
+        if lon is not None and lat is not None:
+            lon,lat = round(coords[0],1),round(coords[1],1)
+            lon,lat = f"{lon}°",f"{lat}°"
+        else:
+            lon,lat='---','---'
+        self.labels[name][1]['text'] = lon
+        self.labels[name][2]['text'] = lat
         
     def receive_map_area_coords(self,area):
         self.change_coords('Top-left',area[0],area[2])
@@ -44,6 +48,9 @@ class GeoInfoFrame(tk.Frame):
 
     def receive_clicked_coords(self,coords):
         self.change_coords('Clicked',coords[0],coords[1])
+
+    def remove_clicked_point(self):
+        self.change_coords('Clicked',[None,None])
 
     
 

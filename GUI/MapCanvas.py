@@ -3,6 +3,8 @@ from tkinter import ttk
 from PIL import Image, ImageTk, ImageDraw
 from math import pow
 
+from GUI.GUI_config import CLICKED_POINT_CROSS_HEIGHT_PROP,CLICKED_POINT_CROSS_WIDTH,CLICKED_POINT_CROSS_COLOR
+
 def draw_greenwich_meridian(img, left_longitude):
     x_greenwich = int(img.width * (-left_longitude)/360)
     im_draw = ImageDraw.Draw(img)
@@ -34,29 +36,35 @@ class MapCanvas(tk.Canvas):
         self.scale = pow(self.SCALE_EXPONENT,self.zoom)
         # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
         # Longitude origin is at world map left side, and latitude origin is at world top side (INVERSED)
-        self.lon = 0
-        self.lat = 90
+        self.set_coordinates(0,0)
         # Remember state at last click for dragging
         self.mouse_memory_x = None
         self.mouse_memory_y = None
         self.lon_memory = None
         self.lat_memory = None
+        self.clicked_lon = None
+        self.clicked_lat = None
         # Display image for first time
         self.display_image(None)
         # Events
         self.bind('<MouseWheel>',self.zoom_map)
         self.bind('<Configure>',self.display_image)
+        self.bind('<Configure>',self.send_map_area_coords,add='+')
         self.bind('<1>', self.remember_mouse_pos)
+        self.bind('<2>', self.remove_clicked_point)
         self.bind('<B1-Motion>', self.move_map)
-        self.bind('<3>', self.on_right_click)
+        self.bind('<3>', self.click_point)
+
+    def send_map_area_coords(self,event):
+        map_area_lon_width = self.convert_offset_pixel_degree(self.winfo_width(),data_source='pixel',axis='lon')
+        map_area = [self.lon,self.lat,(self.lon+map_area_lon_width)%360,self.lat-180/self.scale]
+        self.business_parent.receive_map_area_coords(map_area)
 
     def set_coordinates(self,lon,lat):
         lon,lat = self.control_coordinates(lon,lat)
         self.lon = lon
         self.lat = lat
-        map_area_lon_width = self.convert_pixel_offset_in_degree(self.winfo_width(),axis='lon')
-        map_area = [self.lon,self.lat,(self.lon+map_area_lon_width)%360,self.lat-180/self.scale]
-        self.business_parent.receive_map_area_coords(map_area)
+        self.send_map_area_coords(None)
 
     def control_coordinates(self,lon,lat):
         """ ensure that coordinates do not cross limits """
@@ -65,12 +73,19 @@ class MapCanvas(tk.Canvas):
         lat = min(90,max(min_lat,lat))
         return lon,lat
 
-    def on_right_click(self,event):
+    def click_point(self,event):
         # Identify clicked point
-        clicked_lon = self.lon + self.convert_pixel_offset_in_degree(event.x,axis='lon')
-        clicked_lat = self.lat + self.convert_pixel_offset_in_degree(event.y,axis='lat')
+        self.clicked_lon = self.lon + self.convert_offset_pixel_degree(event.x,data_source='pixel',axis='lon')
+        self.clicked_lat = self.lat + self.convert_offset_pixel_degree(event.y,data_source='pixel',axis='lat')
         # Send coords
-        self.business_parent.receive_clicked_coords([clicked_lon,clicked_lat])
+        self.business_parent.receive_clicked_coords([self.clicked_lon,self.clicked_lat])
+        self.display_image(None)
+
+    def remove_clicked_point(self,event):
+        self.business_parent.remove_clicked_point()
+        self.clicked_lon = None
+        self.clicked_lat = None
+        self.display_image(None)
 
     def remember_mouse_pos(self,event):
         self.mouse_memory_x = event.x
@@ -82,22 +97,24 @@ class MapCanvas(tk.Canvas):
         source_width, source_height = self.source_img.size
         return int(self.winfo_height() / source_height * source_width), self.winfo_height()
 
-    def convert_pixel_offset_in_degree(self,pixels,axis='lon'):
-        total_degrees = 360 if axis=='lon' else 180
+    def convert_offset_pixel_degree(self,offset,data_source='pixel',axis='lon'):
+        total_degrees = 360/self.scale if axis=='lon' else 180/self.scale
         dims_on_canvas = self.get_map_dims_on_canvas()
         total_pixels = dims_on_canvas[0] if axis == 'lon' else dims_on_canvas[1]
-        pix_to_degree = (total_degrees/self.scale)/total_pixels * (1 if axis == 'lon' else -1)
+        conv_ratio = total_degrees/total_pixels * (1 if axis == 'lon' else -1)
+        if data_source == 'degree':
+            conv_ratio = 1/conv_ratio
         """ DEBUG
         if axis == 'lon':
             print(f"Pixels: {pixels}; Prop: {dims_on_canvas[0]}; Degrees: {pixels * pix_to_degree}")"""
-        return pixels * pix_to_degree
+        return offset*conv_ratio
 
     def move_map(self,event):
         # Compute offset
         x_pixel_offset = event.x - self.mouse_memory_x
         y_pixel_offset = event.y - self.mouse_memory_y
-        lon_offset = self.convert_pixel_offset_in_degree(x_pixel_offset,axis='lon')
-        lat_offset = self.convert_pixel_offset_in_degree(y_pixel_offset,axis='lat')
+        lon_offset = self.convert_offset_pixel_degree(x_pixel_offset,data_source='pixel',axis='lon')
+        lat_offset = self.convert_offset_pixel_degree(y_pixel_offset,data_source='pixel',axis='lat')
         # Set new coordinates
         new_lon = self.lon_memory - lon_offset
         new_lat = self.lat_memory - lat_offset
@@ -107,8 +124,8 @@ class MapCanvas(tk.Canvas):
 
     def zoom_map(self,event):
         # Identify zoom center
-        zoom_center_lon = self.lon + self.convert_pixel_offset_in_degree(event.x,axis='lon')
-        zoom_center_lat = self.lat + self.convert_pixel_offset_in_degree(event.y,axis='lat')
+        zoom_center_lon = self.lon + self.convert_offset_pixel_degree(event.x,data_source='pixel',axis='lon')
+        zoom_center_lat = self.lat + self.convert_offset_pixel_degree(event.y,data_source='pixel',axis='lat')
         # Change scale
         if event and event.delta > 0 and self.zoom < self.NB_OF_SCALES-1:
             self.zoom += 1
@@ -121,6 +138,15 @@ class MapCanvas(tk.Canvas):
         new_lat = zoom_center_lat + (previous_scale/self.scale)*(self.lat - zoom_center_lat)
         self.set_coordinates(new_lon,new_lat)
         self.display_image(None)
+
+    def draw_clicked_point_cross(self):
+        dims_on_canvas = self.get_map_dims_on_canvas()
+        x = self.convert_offset_pixel_degree(self.clicked_lon-self.lon,data_source='degree',axis='lon')
+        y = self.convert_offset_pixel_degree(self.clicked_lat-self.lat,data_source='degree',axis='lat')
+        if x>=0 and x<dims_on_canvas[0] and y>=0 and y<dims_on_canvas[1]:
+            cross_size = int(dims_on_canvas[1]*CLICKED_POINT_CROSS_HEIGHT_PROP//2)
+            self.create_line(x-cross_size,y-cross_size,x+cross_size,y+cross_size,fill=CLICKED_POINT_CROSS_COLOR,width=CLICKED_POINT_CROSS_WIDTH)
+            self.create_line(x-cross_size,y+cross_size,x+cross_size,y-cross_size,fill=CLICKED_POINT_CROSS_COLOR,width=CLICKED_POINT_CROSS_WIDTH)
 
     def display_image(self,event):
         dims_on_canvas = self.get_map_dims_on_canvas()
@@ -136,3 +162,5 @@ class MapCanvas(tk.Canvas):
         self.cur_img = ImageTk.PhotoImage(cropped_source.resize(dims_on_canvas))
         self.delete('all')
         self.create_image(0,0,anchor=tk.NW,image=self.cur_img)
+        if self.clicked_lon is not None:
+            self.draw_clicked_point_cross()
