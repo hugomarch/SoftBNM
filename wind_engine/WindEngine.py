@@ -20,26 +20,22 @@ class WindEngine:
         """ Compute all winds in a 2:1 rectangle thats fits in app window, represented by map_area (longitude upper limit may be > 360) 
             Return a wind table as a dict with (lon,lat) couples as keys and wind as values. lon are given % 360 in keys
             lon_0 and lat_0 are the coordinates of the point chosen as the origin of the wind grid """
-        # coordinates of top-left wind
-        top_left_grid_coords = []
-        lon_1 = lon_0 + ceil((map_area[0]-lon_0)/degree_interval)*degree_interval
-        lat_1 = lat_0 + ceil((map_area[0]-lat_0)/degree_interval)*degree_interval
-        grid_size = [floor((map_area[2]-lon_1)/degree_interval)+1,floor((map_area[3]-lat_1)/degree_interval)+1]
+        # wind grid limits expressed as integers corresponding to coordinates on the wind grid
+        wind_grid_limits = [0,0,floor((map_area[2]-lon_0)/degree_interval),floor((lat_0-map_area[3])/degree_interval)]
         wind_table = {}
-        for i in range(grid_size[0]):
-            for j in range(grid_size[1]):
-                lon = round(lon_1 + i*degree_interval,DECIMALS_OF_WIND_TABLE_KEYS)
-                lat = round(lat_1 + j*degree_interval,DECIMALS_OF_WIND_TABLE_KEYS)
+        for i in range(wind_grid_limits[0],wind_grid_limits[2]+1):
+            for j in range(wind_grid_limits[1],wind_grid_limits[3]+1):
+                lon = round(lon_0 + i*degree_interval,DECIMALS_OF_WIND_TABLE_KEYS)
+                lat = round(lat_0 - j*degree_interval,DECIMALS_OF_WIND_TABLE_KEYS)
                 interpol_coord = {'time':time,'pressure':pressure,'height':height,'lon':lon,'lat':lat}
                 params = {altitude_param:('height' if height is not None else 'pressure'),lon_interval:self.metadata['LON Interval'],lat_interval:self.metadata['LAT Interval']}
-                wind_tuple[(lon,lat)] = get_wind_at_coord(self.wind_data,interpol_coord,**params)
-        wind_grid_limits = [lon_1,lat_1,lon,lat]
-        return wind_grid,wind_grid_limits
+                wind_table[(lon,lat)] = get_wind_at_coord(self.wind_data,interpol_coord,**params)
+        return wind_table,wind_grid_limits
 
     def compute_single_wind(self,lon,lat,time,pressure=None,height=None):
         interpol_coord = {'time':time,'pressure':pressure,'height':height,'lon':lon,'lat':lat}
         params = {altitude_param:('height' if height is not None else 'pressure'),lon_interval:self.metadata['LON Interval'],lat_interval:self.metadata['LAT Interval']}
-        wwind = get_wind_at_coord(self.wind_data,interpol_coord,**params)
+        wind = get_wind_at_coord(self.wind_data,interpol_coord,**params)
         return wind
 
 
