@@ -1,3 +1,2 @@
 - donner moins de datetime à l'interpolation
 - commenter
-- régler bug altitude cliquée
