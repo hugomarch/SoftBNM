@@ -172,9 +172,9 @@ class MapCanvas(tk.Canvas):
 
     def draw_clicked_point_cross(self):
         dims_on_canvas = self.get_map_dims_on_canvas()
-        x = self.convert_offset_pixel_degree(self.clicked_lon-self.lon,data_source='degree',axis='lon')
+        x = self.convert_offset_pixel_degree((self.clicked_lon-self.lon)%360,data_source='degree',axis='lon')
         y = self.convert_offset_pixel_degree(self.clicked_lat-self.lat,data_source='degree',axis='lat')
-        if x>=0 and x<dims_on_canvas[0] and y>=0 and y<dims_on_canvas[1]:
+        if x<dims_on_canvas[0] and y>=0 and y<dims_on_canvas[1]:
             cross_size = int(dims_on_canvas[1]*CLICKED_POINT_CROSS_HEIGHT_PROP//2)
             self.create_line(x-cross_size,y-cross_size,x+cross_size,y+cross_size,fill=CLICKED_POINT_CROSS_COLOR,width=CLICKED_POINT_CROSS_WIDTH)
             self.create_line(x-cross_size,y+cross_size,x+cross_size,y-cross_size,fill=CLICKED_POINT_CROSS_COLOR,width=CLICKED_POINT_CROSS_WIDTH)
