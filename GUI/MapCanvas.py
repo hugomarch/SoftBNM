@@ -22,7 +22,19 @@ def concatenate_two_images(im1,im2):
 
 """
 IMPORTANT INFO TO UNDERSTAND THIS CLASS:
-- It manages the movement of a virtual windo
+- It manages the movement of a virtual window over the world map, corresponding to what is currently displayed by the app.
+  This virtual window actually moves on a "repeated map" consisting of a juxtaposition of two source world maps, so the user can travel on the map as on a torus.
+- This virtual window can be thought as two nested windows. One has same shape than the source img of the world map, one has the shape of the app window.
+  2nd must be included in the 1st. The 1st is the window of interest, because it is this window that is cut into the world map and displayed (so it overflows of app window)
+  The initial size of the 1st window is the size of the source image, and is offseted to the Greenwhich meridian.
+  The window position and size information only consists of the self.lon, self.lat data members for position, and self.scale for size, which is the ratio (full map size / app window size)
+  Its size equivalent in term of pixels of the user screen is useful to display the image, and to convert the mouse movement from pixels to lon/lat degrees.
+  This pixels equivalent can be obtained with method get_map_dims_on_canvas()
+- The two variables map_area and restricted_map_area represent respectively 1st and 2nd window in lon/lat size. They are computed by method send_map_area_coords() to be sent to the business parent.
+- The method convert_offset_pixel_degree() is used to convert an offset from pixel to degrees, or in the other way. Useful for map moving, window computations, and drawing of a content that is known by its lon/lat (ex: red cross)
+- display_image() is called by the <Configure> event, move_map() and zoom_map()
+- self.lon and self.lat are only change by the set_coordinates() -> control_coordinates() process. It is called by both move_map() and zoom_map()
+-
 """
 
 class MapCanvas(tk.Canvas):
