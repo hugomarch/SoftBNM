@@ -5,6 +5,7 @@ from math import pow
 
 from GUI.GUI_config import CLICKED_POINT_CROSS_HEIGHT_PROP,CLICKED_POINT_CROSS_WIDTH,CLICKED_POINT_CROSS_COLOR
 from GUI.GUI_config import SCALE_EXPONENT,LEFT_LONGITUDE,NB_OF_SCALES
+from GUI.GUI_config import RESAMPLING_IMAGE_HEIGHT
 
 def draw_greenwich_meridian(img, left_longitude):
     x_greenwich = int(img.width * (-left_longitude)/360)
@@ -30,10 +31,7 @@ class MapCanvas(tk.Canvas):
         tk.Canvas.__init__(self,GUI_parent,borderwidth=3)
         self.business_parent = business_parent
         self['background'] = '#000'
-        draw_greenwich_meridian(image,LEFT_LONGITUDE)
-        self.source_img = image
-        self.repeated_map = concatenate_two_images(image,image)
-        self.cur_img = None
+        self.init_image_data(image)
         self.zoom = 0
         self.scale = pow(SCALE_EXPONENT,self.zoom)
         # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
@@ -56,6 +54,23 @@ class MapCanvas(tk.Canvas):
         self.bind('<2>', self.remove_clicked_point)
         self.bind('<B1-Motion>', self.move_map)
         self.bind('<3>', self.click_point)
+
+    def init_image_data(self,image):
+        draw_greenwich_meridian(image,LEFT_LONGITUDE)
+        self.source_img = image
+        #self.repeated_map = concatenate_two_images(image,image)
+        self.cur_img = None
+        # Compute an array of resampled repeated maps in increasing scale order, ending when reaches full scale
+        self.resampled_repeated_maps = []
+        source_width, source_height = self.source_img.size
+        for zoom in range(NB_OF_SCALES):
+            scale = pow(SCALE_EXPONENT,zoom)
+            target_width, target_height = int(source_width/source_height*RESAMPLING_IMAGE_HEIGHT*scale),int(RESAMPLING_IMAGE_HEIGHT*scale)
+            resampled_map = self.source_img.resize((min(source_width,target_width),min(source_height,target_height)))
+            self.resampled_repeated_maps.append(concatenate_two_images(resampled_map,resampled_map))
+            if target_width > source_width or target_height > source_height:
+                break
+        print(f"Number of resampled maps: {len(self.resampled_repeated_maps)}")
 
     def send_map_area_coords(self,event):
         map_area = [self.lon,self.lat,self.lon+360/self.scale,self.lat-180/self.scale]
@@ -153,7 +168,9 @@ class MapCanvas(tk.Canvas):
 
     def display_image(self,event):
         dims_on_canvas = self.get_map_dims_on_canvas()
-        source_width, source_height = self.source_img.width, self.source_img.height
+        # Choose the resampled repeated map corresponding to scale
+        repeated_map = self.resampled_repeated_maps[min(self.zoom,len(self.resampled_repeated_maps)-1)]
+        source_width, source_height = repeated_map.width//2, repeated_map.height
         # lon-lat coordinates of cropped zone of map
         lon_crop_limit = [self.lon,self.lon+360/self.scale]
         lat_crop_limit = [self.lat,self.lat-180/self.scale]
@@ -161,7 +178,7 @@ class MapCanvas(tk.Canvas):
         x_crop_limit = [(x-LEFT_LONGITUDE) * source_width/360 for x in lon_crop_limit]
         y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])
-        cropped_source = self.repeated_map.crop(crop_area)
+        cropped_source = repeated_map.crop(crop_area)
         self.cur_img = ImageTk.PhotoImage(cropped_source.resize(dims_on_canvas))
         self.delete('all')
         self.create_image(0,0,anchor=tk.NW,image=self.cur_img)
