@@ -38,6 +38,9 @@ class ControlPanel(tk.Frame):
     def remove_clicked_point(self):
         self.geo_info.remove_clicked_point()
 
+    def resize_width(self,width):
+        self['width'] = width
+
     def on_resize(self,event):
         self.size_logo()
         

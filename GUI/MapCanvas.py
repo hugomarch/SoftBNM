@@ -19,6 +19,11 @@ def concatenate_two_images(im1,im2):
     concat.paste(im2,(im1.width,0))
     return concat
 
+"""
+IMPORTANT INFO TO UNDERSTAND THIS CLASS:
+- It manages the movement of a virtual windo
+"""
+
 class MapCanvas(tk.Canvas):
     def __init__(self,business_parent=None,GUI_parent=None,image=None):
         """ use PIL img for init """
