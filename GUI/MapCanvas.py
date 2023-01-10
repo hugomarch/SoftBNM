@@ -34,7 +34,8 @@ IMPORTANT INFO TO UNDERSTAND THIS CLASS:
 - The method convert_offset_pixel_degree() is used to convert an offset from pixel to degrees, or in the other way. Useful for map moving, window computations, and drawing of a content that is known by its lon/lat (ex: red cross)
 - display_image() is called by the <Configure> event, move_map() and zoom_map()
 - self.lon and self.lat are only change by the set_coordinates() -> control_coordinates() process. It is called by both move_map() and zoom_map()
--
+- The possible map zooms is a discrete set (of size NB_OF_SCALES). To allow for better fluidity, we compute at map initialization an array of resampled repeated maps, one for each zoom level.
+  The resampling factor decreases with zoom and is constant equal to 1 after a certain zoom limit. It's computed so that the height of the resulting image (with a given zoom) is a number of pixels close to RESAMPLING_IMAGE_HEIGHT
 """
 
 class MapCanvas(tk.Canvas):
@@ -99,7 +100,7 @@ class MapCanvas(tk.Canvas):
     def control_coordinates(self,lon,lat):
         """ ensure that coordinates do not cross limits """
         min_lat = min(90,90-(1-1/self.scale)*180)
-        lon = (lon - LEFT_LONGITUDE) % 360 + LEFT_LONGITUDE
+        lon = lon % 360
         lat = min(90,max(min_lat,lat))
         return lon,lat
 
@@ -187,7 +188,8 @@ class MapCanvas(tk.Canvas):
         lon_crop_limit = [self.lon,self.lon+360/self.scale]
         lat_crop_limit = [self.lat,self.lat-180/self.scale]
         # crop area on repeated map
-        x_crop_limit = [(x-LEFT_LONGITUDE) * source_width/360 for x in lon_crop_limit]
+        lon_crop_limit_reworked = [(lon_crop_limit[0]-LEFT_LONGITUDE)%360, (lon_crop_limit[0]-LEFT_LONGITUDE)%360+lon_crop_limit[1]-lon_crop_limit[0]]
+        x_crop_limit = [x*source_width/360 for x in lon_crop_limit_reworked]
         y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])
         cropped_source = repeated_map.crop(crop_area)
