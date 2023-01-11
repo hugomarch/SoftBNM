@@ -8,11 +8,11 @@ from wind_engine.config import DECIMALS_OF_WIND_TABLE_KEYS
 from GUI.GUI_config import NB_OF_DISPLAYED_WINDS_IN_MAP_AREA
 
 class WindMap:
-    def __init__(self,business_parent=None,GUI_parent=None,wind_engine=None,image=None):
+    def __init__(self,business_parent=None,GUI_parent=None,wind_engine=None):
         self.business_parent = business_parent
         self.GUI_parent = GUI_parent
         self.wind_engine = wind_engine
-        self.map = MapCanvas(business_parent=self,GUI_parent=self.GUI_parent,image=image)
+        self.map = MapCanvas(business_parent=self,GUI_parent=self.GUI_parent)
         self.map.pack(side=tk.LEFT,fill=tk.BOTH)
         # Map business info (should have ideally in fact been entirely processed here, no logic and display only in MapCanvas)
         self.restricted_map_area = None

@@ -3,22 +3,10 @@ from tkinter import ttk
 from PIL import Image, ImageTk, ImageDraw
 from math import pow
 
-from GUI.GUI_config import CLICKED_POINT_CROSS_HEIGHT_PROP,CLICKED_POINT_CROSS_WIDTH,CLICKED_POINT_CROSS_COLOR
-from GUI.GUI_config import SCALE_EXPONENT,LEFT_LONGITUDE,NB_OF_SCALES
-from GUI.GUI_config import RESAMPLING_IMAGE_HEIGHT
+import GUI.MapCanvas_config as MapCanvas_config
+from GUI.MapCanvas_config import CLICKED_POINT_CROSS_HEIGHT_PROP,CLICKED_POINT_CROSS_WIDTH,CLICKED_POINT_CROSS_COLOR
+from GUI.MapCanvas_config import SCALE_EXPONENT,NB_OF_SCALES,RESAMPLING_IMAGE_HEIGHT
 
-def draw_greenwich_meridian(img, left_longitude):
-    x_greenwich = int(img.width * (-left_longitude)/360)
-    im_draw = ImageDraw.Draw(img)
-    line_points = [(x_greenwich,0),(x_greenwich,img.height)]
-    im_draw.line(line_points,fill='#f00',width=2)
-
-def concatenate_two_images(im1,im2):
-    """ concatenate horizontally 2 images of same height """
-    concat = Image.new('RGB',(im1.width+im2.width,im1.height))
-    concat.paste(im1,(0,0))
-    concat.paste(im2,(im1.width,0))
-    return concat
 
 """
 IMPORTANT INFO TO UNDERSTAND THIS CLASS:
@@ -38,13 +26,55 @@ IMPORTANT INFO TO UNDERSTAND THIS CLASS:
   The resampling factor decreases with zoom and is constant equal to 1 after a certain zoom limit. It's computed so that the height of the resulting image (with a given zoom) is a number of pixels close to RESAMPLING_IMAGE_HEIGHT
 """
 
+def draw_meridian(image, image_left_lon, image_lon_size, meridian_lon):
+    x_line = int(image.width * (meridian_lon-image_left_lon)/image_lon_size)
+    im_draw = ImageDraw.Draw(image)
+    line_points = [(x_line,0),(x_line,image.height)]
+    im_draw.line(line_points,fill='#f00',width=2)
+
+def concatenate_two_images(im1,im2):
+    """ concatenate horizontally 2 images of same height """
+    concat = Image.new('RGB',(im1.width+im2.width,im1.height))
+    concat.paste(im1,(0,0))
+    concat.paste(im2,(im1.width,0))
+    return concat
+
+def make_raw_image(map_def):
+    image = Image.open(map_def['image_file'])
+    image_left_lon = map_def['image_top_left_coords'][0]
+    image_lon_size = map_def['image_lon_lat_size'][0]
+    for meridian_lon in map_def['draw_meridian']:
+        draw_meridian(image,image_left_lon,image_lon_size,meridian_lon)
+    return image
+
+def resample_image(raw_img):
+    """ Compute an array of resampled repeated maps in increasing scale order, ending when reaches full scale """
+    resampled_repeated_maps = []
+    source_width, source_height = raw_img.size
+    for zoom in range(NB_OF_SCALES):
+        scale = pow(SCALE_EXPONENT,zoom)
+        target_width, target_height = int(source_width/source_height*RESAMPLING_IMAGE_HEIGHT*scale),int(RESAMPLING_IMAGE_HEIGHT*scale)
+        resampled_map = raw_img.resize((min(source_width,target_width),min(source_height,target_height)))
+        resampled_repeated_maps.append(concatenate_two_images(resampled_map,resampled_map))
+        if target_width > source_width or target_height > source_height:
+            break
+    print(f"Number of resampled maps: {len(resampled_repeated_maps)}")
+    return resampled_repeated_maps
+
+def compute_resampled_repeated_maps(map_name):
+    map_def = MapCanvas_config.map_config[map_name]
+    raw_img = make_raw_image(map_def)
+    resampled_repeated_maps = resample_image(raw_img)
+    return resampled_repeated_maps
+
 class MapCanvas(tk.Canvas):
-    def __init__(self,business_parent=None,GUI_parent=None,image=None):
-        """ use PIL img for init """
+    def __init__(self,business_parent=None,GUI_parent=None):
         tk.Canvas.__init__(self,GUI_parent,borderwidth=3)
-        self.business_parent = business_parent
         self['background'] = '#000'
-        self.init_image_data(image)
+        self.business_parent = business_parent
+        self.cur_map = 'World'
+        self.get_image_data()
+        # zoom state
         self.zoom = 0
         self.scale = pow(SCALE_EXPONENT,self.zoom)
         # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
@@ -68,22 +98,10 @@ class MapCanvas(tk.Canvas):
         self.bind('<B1-Motion>', self.move_map)
         self.bind('<3>', self.click_point)
 
-    def init_image_data(self,image):
-        draw_greenwich_meridian(image,LEFT_LONGITUDE)
-        self.source_img = image
-        #self.repeated_map = concatenate_two_images(image,image)
-        self.cur_img = None
-        # Compute an array of resampled repeated maps in increasing scale order, ending when reaches full scale
-        self.resampled_repeated_maps = []
-        source_width, source_height = self.source_img.size
-        for zoom in range(NB_OF_SCALES):
-            scale = pow(SCALE_EXPONENT,zoom)
-            target_width, target_height = int(source_width/source_height*RESAMPLING_IMAGE_HEIGHT*scale),int(RESAMPLING_IMAGE_HEIGHT*scale)
-            resampled_map = self.source_img.resize((min(source_width,target_width),min(source_height,target_height)))
-            self.resampled_repeated_maps.append(concatenate_two_images(resampled_map,resampled_map))
-            if target_width > source_width or target_height > source_height:
-                break
-        print(f"Number of resampled maps: {len(self.resampled_repeated_maps)}")
+    def get_image_data(self):
+        # resampled repeated maps arrays
+        self.resampled_repeated_maps = compute_resampled_repeated_maps(self.cur_map)
+        self.cur_img = None # ad hoc variable to store currently displayed image
 
     def send_map_area_coords(self,event):
         map_area = [self.lon,self.lat,self.lon+360/self.scale,self.lat-180/self.scale]
@@ -125,8 +143,9 @@ class MapCanvas(tk.Canvas):
         self.lat_memory = self.lat
 
     def get_map_dims_on_canvas(self):
-        source_width, source_height = self.source_img.size
-        return int(self.winfo_height() / source_height * source_width), self.winfo_height()
+        repeated_map_width, repeated_map_height = self.resampled_repeated_maps[0].size
+        source_image_ratio = repeated_map_width/2/repeated_map_height
+        return int(self.winfo_height()*source_image_ratio), self.winfo_height()
 
     def convert_offset_pixel_degree(self,offset,data_source='pixel',axis='lon'):
         total_degrees = 360/self.scale if axis=='lon' else 180/self.scale
@@ -188,7 +207,8 @@ class MapCanvas(tk.Canvas):
         lon_crop_limit = [self.lon,self.lon+360/self.scale]
         lat_crop_limit = [self.lat,self.lat-180/self.scale]
         # crop area on repeated map
-        lon_crop_limit_reworked = [(lon_crop_limit[0]-LEFT_LONGITUDE)%360, (lon_crop_limit[0]-LEFT_LONGITUDE)%360+lon_crop_limit[1]-lon_crop_limit[0]]
+        left_lon = MapCanvas_config.map_config[self.cur_map]['image_top_left_coords'][0]
+        lon_crop_limit_reworked = [(lon_crop_limit[0]-left_lon)%360, (lon_crop_limit[0]-left_lon)%360+lon_crop_limit[1]-lon_crop_limit[0]]
         x_crop_limit = [x*source_width/360 for x in lon_crop_limit_reworked]
         y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])

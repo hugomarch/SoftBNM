@@ -1,2 +1,7 @@
+# TASKS
 - donner moins de datetime à l'interpolation
 - commenter
+
+# DESIGN CHANGE
+- L'application ne traitera plus seulement le vent: WindApp -> App, remplacement du lien WindApp -> WindMap -> MapCanvas pour App -> MapManager -> 1. MapCanvas
+                                                                                                                                                   2. Managers = {WindManager, ...}

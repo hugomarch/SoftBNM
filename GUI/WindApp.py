@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
 from ctypes import windll
-from PIL import Image, ImageTk
 import os
 
 from wind_engine.WindEngine import WindEngine
@@ -12,10 +11,9 @@ from GUI.GUI_config import APP_MIN_WIDTH, APP_MIN_HEIGHT, PANEL_WIDTH_FRAC, MAX_
 class WindApp:
     def __init__(self):
         self.init_tkinter_root()
-        map_background = Image.open(os.path.join('GUI','world-map.jpg'))
         self.panel = ControlPanel(business_parent=self,GUI_parent=self.root)
         self.wind_engine = WindEngine()
-        self.map = WindMap(business_parent=self,GUI_parent=self.root,wind_engine=self.wind_engine,image=map_background)
+        self.map = WindMap(business_parent=self,GUI_parent=self.root,wind_engine=self.wind_engine)
         # WindMap is not a widget, it packs its own canvas
         self.panel.pack(side=tk.RIGHT,fill=tk.BOTH)
         self.root.bind('<Configure>',self.on_resize)
