@@ -73,13 +73,11 @@ class MapCanvas(tk.Canvas):
         self['background'] = '#000'
         self.business_parent = business_parent
         self.cur_map = 'World'
-        self.get_image_data()
         # zoom state
         self.zoom = 0
         self.scale = pow(SCALE_EXPONENT,self.zoom)
-        # Coordinated of top left corner of area cut in the full map (its size depend on zoom state).
-        # Longitude origin is at world map left side, and latitude origin is at world top side (INVERSED)
-        self.set_coordinates(0,0)
+        # get image data
+        self.get_image_data()
         # Remember state at last click for dragging
         self.mouse_memory_x = None
         self.mouse_memory_y = None
@@ -97,16 +95,27 @@ class MapCanvas(tk.Canvas):
         self.bind('<2>', self.remove_clicked_point)
         self.bind('<B1-Motion>', self.move_map)
         self.bind('<3>', self.click_point)
+        self.bind('<KeyPress-w>', self.change_map)
+        self.bind('<KeyPress-f>', self.change_map)
+
+    def change_map(self,event):
+        print(event.keysym)
+        print('hey')
 
     def get_image_data(self):
         # resampled repeated maps arrays
         self.resampled_repeated_maps = compute_resampled_repeated_maps(self.cur_map)
         self.cur_img = None # ad hoc variable to store currently displayed image
+        self.image_top_left_coords = MapCanvas_config.map_config[self.cur_map]['image_top_left_coords']
+        self.image_lon_lat_size = MapCanvas_config.map_config[self.cur_map]['image_lon_lat_size']
+        self.is_planisphere = MapCanvas_config.map_config[self.cur_map]['is_planisphere']
+        self.set_coordinates(self.image_top_left_coords[0],self.image_top_left_coords[1])
 
     def send_map_area_coords(self,event):
-        map_area = [self.lon,self.lat,self.lon+360/self.scale,self.lat-180/self.scale]
+        lon_size, lat_size = tuple(self.image_lon_lat_size)
+        map_area = [self.lon,self.lat,self.lon+lon_size/self.scale,self.lat-lat_size/self.scale]
         restricted_map_area_lon_width = self.convert_offset_pixel_degree(self.winfo_width(),data_source='pixel',axis='lon')
-        restricted_map_area = [self.lon,self.lat,(self.lon+restricted_map_area_lon_width)%360,self.lat-180/self.scale]
+        restricted_map_area = [self.lon,self.lat,(self.lon+restricted_map_area_lon_width)%360,self.lat-lat_size/self.scale]
         self.business_parent.receive_map_area_coords(map_area,restricted_map_area)
 
     def set_coordinates(self,lon,lat):
@@ -117,9 +126,26 @@ class MapCanvas(tk.Canvas):
 
     def control_coordinates(self,lon,lat):
         """ ensure that coordinates do not cross limits """
-        min_lat = min(90,90-(1-1/self.scale)*180)
-        lon = lon % 360
-        lat = min(90,max(min_lat,lat))
+        lon_size, lat_size = tuple(self.image_lon_lat_size)
+        # control longitude
+        if self.is_planisphere:
+            lon = lon % 360
+        else:
+            left_lon = self.image_top_left_coords[0]
+            max_lon_offset = (1-1/self.scale)*lat_size
+            # convert longitude in relative to left
+            rel_lon = (lon-left_lon)%360 
+            if rel_lon > max_lon_offset:
+                if 360-rel_lon > rel_lon-max_lon_offset:
+                    rel_lon = max_lon_offset
+                else:
+                    rel_lon = 0
+            # back to normal lon
+            lon = (rel_lon+left_lon)%360
+        # control latitude
+        max_lat = self.image_top_left_coords[1]
+        min_lat = min(max_lat,max_lat-(1-1/self.scale)*lat_size)
+        lat = min(max_lat,max(min_lat,lat))
         return lon,lat
 
     def click_point(self,event):
@@ -148,7 +174,8 @@ class MapCanvas(tk.Canvas):
         return int(self.winfo_height()*source_image_ratio), self.winfo_height()
 
     def convert_offset_pixel_degree(self,offset,data_source='pixel',axis='lon'):
-        total_degrees = 360/self.scale if axis=='lon' else 180/self.scale
+        lon_size, lat_size = tuple(self.image_lon_lat_size)
+        total_degrees = lon_size/self.scale if axis=='lon' else lat_size/self.scale
         dims_on_canvas = self.get_map_dims_on_canvas()
         total_pixels = dims_on_canvas[0] if axis == 'lon' else dims_on_canvas[1]
         conv_ratio = total_degrees/total_pixels * (1 if axis == 'lon' else -1)
@@ -203,14 +230,18 @@ class MapCanvas(tk.Canvas):
         # Choose the resampled repeated map corresponding to scale
         repeated_map = self.resampled_repeated_maps[min(self.zoom,len(self.resampled_repeated_maps)-1)]
         source_width, source_height = repeated_map.width//2, repeated_map.height
+        lon_size, lat_size = tuple(self.image_lon_lat_size)
+        max_lat = self.image_top_left_coords[1]
         # lon-lat coordinates of cropped zone of map
-        lon_crop_limit = [self.lon,self.lon+360/self.scale]
-        lat_crop_limit = [self.lat,self.lat-180/self.scale]
-        # crop area on repeated map
+        lon_crop_limit = [self.lon,self.lon+lon_size/self.scale]
         left_lon = MapCanvas_config.map_config[self.cur_map]['image_top_left_coords'][0]
-        lon_crop_limit_reworked = [(lon_crop_limit[0]-left_lon)%360, (lon_crop_limit[0]-left_lon)%360+lon_crop_limit[1]-lon_crop_limit[0]]
-        x_crop_limit = [x*source_width/360 for x in lon_crop_limit_reworked]
-        y_crop_limit = [(90-y) * source_height/180 for y in lat_crop_limit]
+        rel_lon_crop_limit = [(lon_crop_limit[0]-left_lon)%360, (lon_crop_limit[0]-left_lon)%360+lon_crop_limit[1]-lon_crop_limit[0]]
+        if not self.is_planisphere:
+            rel_lon_crop_limit[-1] = min(rel_lon_crop_limit[-1],lon_size)
+        lat_crop_limit = [self.lat,self.lat-lat_size/self.scale]
+        # crop area on repeated map
+        x_crop_limit = [x*source_width/lon_size for x in rel_lon_crop_limit]
+        y_crop_limit = [(max_lat-y) * source_height/lat_size for y in lat_crop_limit]
         crop_area = (x_crop_limit[0],y_crop_limit[0],x_crop_limit[1],y_crop_limit[1])
         cropped_source = repeated_map.crop(crop_area)
         self.cur_img = ImageTk.PhotoImage(cropped_source.resize(dims_on_canvas))

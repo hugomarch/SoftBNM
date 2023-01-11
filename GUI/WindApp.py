@@ -17,7 +17,7 @@ class WindApp:
         # WindMap is not a widget, it packs its own canvas
         self.panel.pack(side=tk.RIGHT,fill=tk.BOTH)
         self.root.bind('<Configure>',self.on_resize)
-        self.root.bind('<KeyPress-i>',self.echo_app_info)
+        #self.root.bind('<KeyPress-i>',self.echo_app_info)
         try:
             """ If blurry visual
             from ctypes import windll
