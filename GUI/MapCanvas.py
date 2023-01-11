@@ -73,20 +73,9 @@ class MapCanvas(tk.Canvas):
         self['background'] = '#000'
         self.business_parent = business_parent
         self.cur_map = 'World'
-        # zoom state
-        self.zoom = 0
-        self.scale = pow(SCALE_EXPONENT,self.zoom)
-        # get image data
-        self.get_image_data()
-        # Remember state at last click for dragging
-        self.mouse_memory_x = None
-        self.mouse_memory_y = None
-        self.lon_memory = None
-        self.lat_memory = None
-        self.clicked_lon = None
-        self.clicked_lat = None
-        # Display image for first time
-        self.display_image(None)
+        self.focus_set()
+        self.init_state()
+        self.init_image()
         # Events
         self.bind('<MouseWheel>',self.zoom_map)
         self.bind('<Configure>',self.display_image)
@@ -98,11 +87,20 @@ class MapCanvas(tk.Canvas):
         self.bind('<KeyPress-w>', self.change_map)
         self.bind('<KeyPress-f>', self.change_map)
 
-    def change_map(self,event):
-        print(event.keysym)
-        print('hey')
+    def init_state(self):
+        # zoom state
+        self.zoom = 0
+        self.scale = pow(SCALE_EXPONENT,self.zoom)
+        # Remember state at last click for dragging
+        self.mouse_memory_x = None
+        self.mouse_memory_y = None
+        self.lon_memory = None
+        self.lat_memory = None
+        # Clicked point
+        self.clicked_lon = None
+        self.clicked_lat = None
 
-    def get_image_data(self):
+    def init_image(self):
         # resampled repeated maps arrays
         self.resampled_repeated_maps = compute_resampled_repeated_maps(self.cur_map)
         self.cur_img = None # ad hoc variable to store currently displayed image
@@ -110,6 +108,18 @@ class MapCanvas(tk.Canvas):
         self.image_lon_lat_size = MapCanvas_config.map_config[self.cur_map]['image_lon_lat_size']
         self.is_planisphere = MapCanvas_config.map_config[self.cur_map]['is_planisphere']
         self.set_coordinates(self.image_top_left_coords[0],self.image_top_left_coords[1])
+        self.display_image(None)
+
+    def change_map(self,event):
+        new_map = None
+        if event.keysym == 'w':
+            new_map = 'World'
+        elif event.keysym == 'f':
+            new_map = 'France'
+        if new_map != self.cur_map:
+            self.cur_map = new_map
+            self.init_image()
+            self.init_state()
 
     def send_map_area_coords(self,event):
         lon_size, lat_size = tuple(self.image_lon_lat_size)
